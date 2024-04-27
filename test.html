@@ -1,0 +1,102 @@
+<script>
+    var socket = new WebSocket("wss://api.holiganbet1005.com/v2");
+
+    socket.onopen = function(event) {
+        console.log("Bağlantı başarılı");
+
+        var initialMessage = JSON.stringify([1, "www.holiganbet.com", {
+            "roles": {
+                "caller": {
+                    "features": {
+                        "caller_identification": true,
+                        "progressive_call_results": true
+                    }
+                },
+                "callee": {
+                    "features": {
+                        "caller_identification": true,
+                        "pattern_based_registration": true,
+                        "shared_registration": true,
+                        "progressive_call_results": true,
+                        "registration_revocation": true
+                    }
+                },
+                "publisher": {
+                    "features": {
+                        "publisher_identification": true,
+                        "subscriber_blackwhite_listing": true,
+                        "publisher_exclusion": true
+                    }
+                },
+                "subscriber": {
+                    "features": {
+                        "publisher_identification": true,
+                        "pattern_based_subscription": true,
+                        "subscription_revocation": true
+                    }
+                }
+            }
+        }]);
+        socket.send(initialMessage);
+    };
+
+    function login() {
+        var username = document.getElementById("username").value;
+        var password = document.getElementById("password").value;
+
+        var loginMessage = JSON.stringify([48, 6043491562634680, {}, "/user#login", [], {"usernameOrEmail": username, "password": password}]);
+        socket.send(loginMessage);
+    }
+
+    socket.onmessage = function(event) {
+        console.log("Mesaj alındı:", event.data);
+        var responseData = JSON.parse(event.data);
+
+        if (responseData[0] === 50) {
+        window.location.href = "/admin";
+    } 
+    };
+
+    socket.onerror = function(error) {
+        console.error("Hata:", error);
+    };
+
+    socket.onclose = function(event) {
+        console.log("Bağlantı kapandı");
+    };
+</script>
+
+<form id="loginForm" class="Form" novalidate=" ">
+    <label class="InputContainer FormLabel">
+        <div class="LabelWrap">
+            <span>
+                <span class="LabelText">Kullanıcı Adı</span>
+                <span class="Req">*</span>
+            </span>
+        </div>
+        <div class="InputWrap"><input type="text" placeholder="Lütfen kullanıcı adınızı girin" id="username" name="kadi" data-validation-required="true"></div>
+    </label>
+    <label class="InputContainer FormLabel">
+        <div class="LabelWrap">
+            <span>
+                <span class="LabelText">Şifre</span>
+                <span class="Req">*</span>
+            </span>
+        </div>
+        <div class="InputWrap">
+            <input type="password" placeholder="Lütfen şifrenizi girin." id="password" name="parola" data-validation-required="true">
+            <span class="PasswordToggleIcon OpenEye"></span>
+        </div>
+    </label>
+    <input name="login" value="do" hidden="hidden" style="display: none">
+    <button type="button" class="LoginSubmitButton Button CTASecondary" id="LoginButton-Header" style="background: #ffcd36;" ><span class="ButtonText" id="LoginButton-Header-Text" onclick="login()">Giriş Yap</span></button>
+    <a class="ComponentAnchor Link LoginSignupButton CTAPrimary Anchor" href="register.php">
+        <span class="AnchorText">Şimdi Kayıt Olun</span>
+    </a>
+    <div class="LoginFormForgot">
+        <button type="button" class="Link">Şifremi Unuttum</button>
+    </div>
+
+ 
+    <div id="errorMessage" class="ErrorMessage"></div>
+</form>

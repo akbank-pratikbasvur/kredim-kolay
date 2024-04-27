@@ -1,0 +1,239 @@
+MODULES.Utility.Validation = (function ($) {
+  var _info = 'Validation';
+  var _self = this;
+
+  function init() {
+    moduleCache();
+    eventListener();
+    validationInit();
+    mask();
+    nextInputFocus();
+  }
+
+  function moduleCache() {
+    _self.$form = $('form');
+  }
+
+  function validationInit(params) {
+    jQuery.validator.addClassRules({
+      required: {
+        required: true,
+        noSpace: true,
+      },
+      phone: {
+        phonerule: true,
+      },
+      dateformat: {
+        birthdayrule: true,
+      },
+      captcha: {
+        captcharule: true,
+      },
+      kvkk: {
+        kvkkrule: true,
+      }
+    });
+
+    jQuery.validator.addMethod(
+      'noSpace',
+      function (value) {
+        return value == '' || value.trim().length != 0;
+      },
+      jQuery.validator.messages.required
+    );
+
+    jQuery.validator.addMethod(
+      'tckn',
+      function (value, element) {
+        if (value.length > 0) {
+          return tcknControl(value);
+        } else {
+          return false;
+        }
+      },
+      jQuery.validator.messages.tckn
+    );
+
+    jQuery.validator.addMethod(
+      'phonerule',
+      function (value, element) {
+        return checkPhoneNumber(value);
+      },
+      jQuery.validator.messages.phone
+    );
+
+    jQuery.validator.addMethod(
+      'birthdayrule',
+      function (value, element) {
+        return checkBirthdayNumber(value);
+      },
+      jQuery.validator.messages.birthday
+    );
+
+    jQuery.validator.addMethod(
+      'captcharule',
+      function (value, element) {
+        return (value && value.length > 0);
+      },
+      jQuery.validator.messages.captcha
+    );
+
+    jQuery.validator.addMethod(
+      'kvkkrule',
+      function (value, element) {
+        return (value && value.length > 0);
+      },
+      jQuery.validator.messages.kvkk
+    );
+
+    _self.$form.validate({
+      ignore: ':hidden, .ignore',
+      errorPlacement: function (error, element) {
+        if (element.hasClass('select2')) {
+          element.parents('.input-block').append(error);
+        } else if (element.hasClass('fillone')) {
+          error.insertAfter(element.parents('.after-error'));
+        } else if (element.hasClass('captcha')) {
+          // element.parents('.captcha-group').append(error);
+          error.insertAfter(element.parents('.captcha-group'));
+        } else if (element.parent().hasClass('radio')) {
+          error.insertAfter(element.parents('.radio-inline'));
+        } else if (element.parents('.form-control-group').length > 0) {
+          element.parent('.form-control-group').addClass('error');
+          element.parent('.form-control-group').next().remove();
+          error.insertAfter(element.parents('.form-control-group'));
+        } else if (element.parent().hasClass('checkbox')) {
+          error.insertAfter(element.parent());
+        } else if (element.parents('.after-error').length > 0) {
+          error.insertAfter(element.parents('.after-error'));
+        } else if (element.parents('.checkbox-block').length > 0) {
+          if (element.parents('.checkbox-block').next().hasClass('error')) {
+            element.parents('.checkbox-block').next().remove();
+          }
+          error.insertAfter(element.parents('.checkbox-block'));
+        } else {
+          error.insertAfter(element);
+        }
+      },
+      highlight: function (element, errorClass) {
+        $(element).addClass('error');
+        $(element).parents('.input-block').addClass('error');
+      },
+      unhighlight: function (element) {
+        $(element).removeClass('error');
+        $(element).parents('.input-block').removeClass('error');
+      },
+    });
+  }
+  function mask() {
+    // $('.phone').mask("999 999 99 99");
+    $('.phone').inputmask({
+      mask: '599 999 99 99',
+      placeholder: '5__ ___ __ __',
+    });
+
+    $('.dateformat').inputmask('datetime', {
+      mask: '99/99/9999',
+      placeholder: '__/__/____',
+      leapday: '-02-29',
+      separator: '.',
+      alias: 'dd.mm.yyyy',
+      yearrange: {
+        minyear: 1900,
+        maxyear: dayjs().add('-18', 'year').format('YYYY'),
+      },
+    });
+  }
+  function tcknControl(value) {
+    value = value.toString();
+    var isEleven = /^[0-9]{11}$/.test(value);
+    var totalX = 0;
+    for (var i = 0; i < 10; i++) {
+      totalX += Number(value.substr(i, 1));
+    }
+    var isRuleX = totalX % 10 == value.substr(10, 1);
+    var totalY1 = 0;
+    var totalY2 = 0;
+    for (var i = 0; i < 10; i += 2) {
+      totalY1 += Number(value.substr(i, 1));
+    }
+    for (var i = 1; i < 10; i += 2) {
+      totalY2 += Number(value.substr(i, 1));
+    }
+    var isRuleY = (totalY1 * 7 - totalY2) % 10 == value.substr(9, 0);
+    return isEleven && isRuleX && isRuleY;
+  }
+  function checkPhoneNumber(num) {
+    var regexp = /[0-9]{3}[0-9]{3}[0-9]{2}[0-9]{2}/;
+    var valid = regexp.test(num.replace(/\s/g, ''));
+    return valid;
+  }
+  function eventListener() {
+    $('.btn-submit').on('click', function (e) {
+      if (!$('form').valid()) {
+        $('html,body').animate(
+          {
+            scrollTop: $('label.error:visible').offset().top - 200,
+          },
+          'swing'
+        );
+        return false;
+      }
+    });
+  }
+  function nextInputFocus() {
+    $('.form-control-group .form-control').keyup(function () {
+      if (this.value.length == this.maxLength) {
+        $(this).next('.form-control').focus();
+      }
+    });
+    $('.form-control-group, .form-control').keyup(function (event) {
+      var keycode = event.keyCode ? event.keyCode : event.which;
+      if (keycode == '13') {
+        $(this).parents('.applicationform').find('.btn-submit').trigger('click');
+        $(this).parents('.applicationform').find('.submit-btn').trigger('click');
+      }
+    });
+  }
+  function checkBirthdayNumber(num) {
+    var regexp = /((0[1-9]|[12]\d|3[01]).(0[1-9]|1[0-2])).[12]\d{3}/;
+    var valid = regexp.test(num);
+    return valid;
+  }
+
+  return init;
+})(jQuery);
+
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['jquery', '../jquery.validate'], factory);
+  } else if (typeof module === 'object' && module.exports) {
+    module.exports = factory(require('jquery'));
+  } else {
+    factory(jQuery);
+  }
+})(function ($) {
+  /*
+   * Translated default messages for the jQuery validation plugin.
+   * Locale: TR (Turkish; Türkçe)
+   */
+  $.extend($.validator.messages, {
+    required: 'Zorunlu alan',
+    date: 'Lütfen geçerli bir tarih giriniz.',
+    number: 'Lütfen geçerli bir sayı giriniz.',
+    digits: 'Lütfen sadece sayısal karakterler giriniz.',
+    maxlength: $.validator.format('Lütfen en fazla {0} karakter uzunluğunda bir değer giriniz.'),
+    minlength: $.validator.format('Lütfen en az {0} karakter uzunluğunda bir değer giriniz.'),
+    rangelength: $.validator.format('Lütfen en az {0} ve en fazla {1} uzunluğunda bir değer giriniz.'),
+    range: $.validator.format('Lütfen {0} ile {1} arasında bir değer giriniz.'),
+    max: $.validator.format('Lütfen {0} değerine eşit ya da daha küçük bir değer giriniz.'),
+    min: $.validator.format('Lütfen {0} değerine eşit ya da daha büyük bir değer giriniz.'),
+    step: $.validator.format('Lütfen {0} değerinin katı sayı giriniz.'),
+    tckn: 'Lütfen TC kimlik numaranızı giriniz',
+    phone: 'Lütfen telefon numaranızı giriniz',
+    birthday: 'Lütfen doğum tarihinizi giriniz',
+    captcha: 'Lütfen güvenlik kodunu giriniz',
+    kvkk: 'Lütfen onay kutusunu işaretleyiniz'
+  });
+});
